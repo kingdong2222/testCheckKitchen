@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #preview_result{
+            display: none;
+            position: relative;
+        }
+        #preview_result.show{
+            display: block;
+        }
+        #imageUploadForm.hide{
+            display: none;
+        }
+        #preview_result img{
+            max-width: 100px;
+            aspect-ratio: 3/2;
+        }
+        #preview_result .result{
+            max-width: 100px;
+            aspect-ratio: 3/2;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+        #link_result{
+            position: absolute;
+            bottom: -100%;
+        }
+        #link_result.show{
+            animation: slideUp 5s ease-in-out forwards;
+        }
+        @keyframes slideUp {
+            from {
+                bottom: -100%;
+            }
+            to {
+                bottom: 0;
+            }
+        }
+
+        /* HTML: <div class="loader"></div> */
+        .loader {
+        width: 16px;
+        aspect-ratio: 1;
+        background: #3FB8AF;
+        position: relative;
+        animation: l5-0 2s infinite linear;
+        transition: opacity 0.3s;
+        top: 40px;
+        left: 40px;
+        }
+        .loader:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: #FF3D7F;
+        transform: translate(30px) rotate(0);
+        animation: l5-1 .5s infinite 
+        }
+        @keyframes l5-0 {
+        100% {transform: rotate(1turn)}
+        }
+        @keyframes l5-1 {
+        100% {transform: translate(30px) rotate(.25turn)}
+        }
+
+    </style>
+</head>
+<body>
+    <form id="imageUploadForm">
+        <input type="file" id="imageInput" name="image" accept="image/*" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div class="loader" id="loader" style="opacity: 0;"></div>
+    <div id="preview_result">
+        <p>Image results:</p>
+        <div style="position: relative;">
+            <img id="preview" alt="Image Uploaded from User">
+            <div class="result">
+                <img id="link_result" alt="Image Generated from ChatGPT"/>   
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.onload = () =>{
+            localStorage.clear()
+        }
+        document.getElementById('imageInput').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('preview');
+                    preview.src = e.target.result;
+                    // preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        document.getElementById('imageUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            localStorage.clear()
+            const formData = new FormData();
+            const image = document.getElementById('imageInput').files[0];
+            // const message = document.getElementById('messageInput').value;
+            document.getElementById('imageUploadForm').classList.add('hide')
+            document.getElementById('loader').style.opacity='1'
+        
+            if (image) {
+                formData.append('image', image);
+            } else {
+                console.error('No image file selected.');
+                return;
+            }
+
+            try {
+                const apiLink = 'http://54.169.177.9:3000/upload'
+                const apiLocal = 'http://localhost:3000/upload'
+                const response = await fetch(apiLink, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // let resultPath = 'http://www.thietkebepbosch.com/wp-content/uploads/resultGPT/'
+        
+                const result = await response.json();
+
+                localStorage.setItem('imgUrl', result.imgUrl)
+
+                localStorage.setItem('check', result.response)
+
+                const responseData = result.response.replaceAll('`','').replaceAll('{','')
+
+                const dataList = responseData.toLowerCase().split('\n')
+                if(responseData === 'again'){
+                    alert("Please upload your kitchen again!");
+                    window.location.reload();
+                } else {
+                    dataList.map(item =>{
+                    if(item.includes('2.')){
+                        if(item.includes('small')){
+                            localStorage.setItem('gptSize','small')
+                            // resultPath = resultPath + 'small/'
+                        } else if(item.includes('medium')){
+                            localStorage.setItem('gptSize','medium')
+                            // resultPath = resultPath + 'medium/'
+                        } else if(item.includes('large')){
+                            localStorage.setItem('gptSize','large')
+                            // resultPath = resultPath + 'large/'
+                        } 
+                    }
+                    if(item.includes('1.')){
+                        if(item.includes('diagonal')){
+                            localStorage.setItem('gptCamera','diagonal')
+                            // resultPath = resultPath + 'diagonal/'
+                        } else if(item.includes('straight')){
+                            localStorage.setItem('gptCamera','straight')
+                            // resultPath = resultPath + 'straight/'
+                        } 
+                    }
+                    if(item.includes('3.')){
+                        if(item.includes('l shape')){
+                            localStorage.setItem('gptKitchenType','type_1')
+                            // resultPath = resultPath + 'type_1/'
+                        } else if(item.includes('l shape with island')){
+                            localStorage.setItem('gptKitchenType','type_2')
+                            // resultPath = resultPath + 'type_2/'
+                        } else if(item.includes('straight')){
+                            localStorage.setItem('gptKitchenType','type_3')
+                            // resultPath = resultPath + 'type_3/'
+                        } else if(item.includes('straight with island')){
+                            localStorage.setItem('gptKitchenType','type_5')
+                            // resultPath = resultPath + 'type_5/'
+                        } else if(item.includes('parallel')){
+                            localStorage.setItem('gptKitchenType','type_0')
+                            // resultPath = resultPath + 'type_0/'
+                        } else if(item.includes('u shape')){
+                            localStorage.setItem('gptKitchenType','type_4')
+                            // resultPath = resultPath + 'type_4/'
+                        } 
+                    }
+                    if(item.includes('4.')){
+                        if(item.includes('left')){
+                            localStorage.setItem('gptShapeSide','left')
+                            // resultPath = resultPath + 'left/'
+                        } else if(item.includes('right')){
+                            localStorage.setItem('gptShapeSide','right')
+                            // resultPath = resultPath + 'right/'
+                        } 
+                    }
+                    if(item.includes('5.')){
+                        if(item.includes('left')){
+                            localStorage.setItem('gptShapeSide','left')
+                            // resultPath = resultPath + 'left/'
+                        } else if(item.includes('right')){
+                            localStorage.setItem('gptShapeSide','right')
+                            // resultPath = resultPath + 'right/'
+                        } 
+                    }
+                    
+
+                    if(item.includes('6.')){
+                        if(item.includes('left')){
+                            localStorage.setItem('gptLeanWall','left')
+                            // resultPath = resultPath + 'left/'
+                        } else if(item.includes('right')){
+                            localStorage.setItem('gptLeanWall','right')
+                            // resultPath = resultPath + 'right/'
+                        } 
+                    }
+
+                })
+                }
+
+                document.getElementById('preview').src = localStorage.getItem('imgUrl')
+                // document.getElementById('link_result').innerText = resultPath + '0.jpg';
+                
+            } catch (error) {
+                console.error('Error:', error);
+            }
+            let resultPath = 'http://www.thietkebepbosch.com/wp-content/uploads/resultGPT/'
+
+            setTimeout(()=>{
+                const size = localStorage.getItem('gptSize')
+                const angle = localStorage.getItem('gptCamera')
+                const kitchen_type = localStorage.getItem('gptKitchenType')
+
+                let sideLKitchen
+
+                const sideStraightKitchen = localStorage.getItem('gptLeanWall') || ''
+
+                if(kitchen_type == 'type_1' || kitchen_type == 'type_5'){
+                        sideLKitchen = localStorage.getItem('gptShapeSide')
+                }
+                if(angle){
+                    resultPath = resultPath + angle + '/'
+                    if(size){
+                        resultPath = resultPath + size + '/'
+                        if(kitchen_type){
+                            resultPath = resultPath + kitchen_type + '/'
+                            if(kitchen_type == 'type_1' || kitchen_type == 'type_5'){
+                                if(sideLKitchen){
+                                    resultPath = resultPath + sideLKitchen + '/'
+                                } 
+                            } else {
+                                if(sideStraightKitchen){
+                                    resultPath = resultPath + sideStraightKitchen + '/'
+                                }
+                            }
+                        }
+                    }
+                }
+                // document.getElementById('link_result').innerText = resultPath + '0.jpg';
+                resultPath = resultPath + '0.jpg'
+                document.getElementById('link_result').src = resultPath
+                
+
+            },100)
+
+
+            setInterval(()=>{
+                if(resultPath.includes('0.jpg')){
+                    let temp = document.getElementById('link_result')
+                    if(!temp.classList.contains('show')){
+                        document.getElementById('loader').style.opacity='0'
+                        setTimeout(()=>{document.getElementById('loader').style.display='none'},200)
+                        document.getElementById('preview_result').classList.add('show')
+                        setTimeout(()=>{temp.classList.add('show')},500)
+                    }
+                }
+            },100)
+        });
+        
+        
+    </script>
+    
+    
+</body>
+</html>
